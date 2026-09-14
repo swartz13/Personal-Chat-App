@@ -15,7 +15,7 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../i18n/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { directChatId, subscribeToChats, subscribeToChatState } from '../services/chat';
+import { FAMILY_CHAT_ID, directChatId, subscribeToChats, subscribeToChatState } from '../services/chat';
 import Avatar from '../components/Avatar';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import type { Chat, FamilyUser } from '../types';
@@ -121,7 +121,9 @@ export default function ChatListScreen({ navigation }: Props) {
       const isCleared = clearedAt > 0 && lastMsgTime <= clearedAt;
       const effectiveLastMessage = isCleared ? null : chat.lastMessage;
 
-      if (chat.type === 'group') {
+      const isGroup = chat.id === FAMILY_CHAT_ID || chat.type === 'group';
+
+      if (isGroup) {
         result.push({
           key: chat.id,
           chatId: chat.id,
@@ -135,7 +137,7 @@ export default function ChatListScreen({ navigation }: Props) {
         continue;
       }
 
-      const otherUid = chat.members.find((m) => m !== user.uid);
+      const otherUid = chat.members?.find((m) => m !== user.uid);
       if (!otherUid) continue;
       covered.add(otherUid);
       const contact = usersMap.get(otherUid);
@@ -151,6 +153,18 @@ export default function ChatListScreen({ navigation }: Props) {
         time: effectiveLastMessage ? formatTime(effectiveLastMessage.at) : '',
         isGroup: false,
         photo: contact?.photoURL,
+      });
+    }
+
+    // Always ensure the Family Group is present at the top of the list
+    if (!result.some((item) => item.chatId === FAMILY_CHAT_ID)) {
+      result.unshift({
+        key: FAMILY_CHAT_ID,
+        chatId: FAMILY_CHAT_ID,
+        title: t('chatList.familyGroup'),
+        subtitle: t('chatList.noMessages'),
+        time: '',
+        isGroup: true,
       });
     }
 

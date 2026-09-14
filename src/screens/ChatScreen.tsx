@@ -54,8 +54,10 @@ import { useAppTheme } from '../hooks/useAppTheme';
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
 export default function ChatScreen({ navigation, route }: Props) {
-  const { chatId, title, isGroup, peerPhoto, peerUid } = route.params;
+  const { chatId, title, isGroup: routeIsGroup, peerPhoto, peerUid } = route.params;
+  const isGroup = chatId === FAMILY_CHAT_ID || Boolean(routeIsGroup);
   const { user, profile } = useAuth();
+  const effectivePeerUid = peerUid || (!isGroup && chatId.startsWith('direct_') ? chatId.replace('direct_', '').split('_').find((id) => id !== user?.uid) : undefined);
   const { startCall } = useCall();
   const { t } = useTranslation();
   const theme = useAppTheme();
@@ -90,12 +92,12 @@ export default function ChatScreen({ navigation, route }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!user || isGroup || !peerUid) return;
+    if (!user || isGroup || !effectivePeerUid) return;
     // When entering a new user from the list screen, the chat might not be created yet.
-    ensureDirectChat(user.uid, peerUid).catch((caught) =>
+    ensureDirectChat(user.uid, effectivePeerUid).catch((caught) =>
       console.warn('[chat] could not create direct chat', caught)
     );
-  }, [user, isGroup, peerUid]);
+  }, [user, isGroup, effectivePeerUid]);
 
   useEffect(() => {
     if (!user) return;
@@ -212,8 +214,8 @@ export default function ChatScreen({ navigation, route }: Props) {
     async (type: CallType) => {
       if (!user) return;
       // In a direct chat, we know who we're calling, no need to ask.
-      if (!isGroup && peerUid) {
-        startCall({ uid: peerUid, name: title }, type);
+      if (!isGroup && effectivePeerUid) {
+        startCall({ uid: effectivePeerUid, name: title }, type);
         return;
       }
 
@@ -233,7 +235,7 @@ export default function ChatScreen({ navigation, route }: Props) {
         Alert.alert(t('common.error'), t('chat.loadError'));
       }
     },
-    [user, isGroup, peerUid, title, startCall, t]
+    [user, isGroup, effectivePeerUid, title, startCall, t]
   );
 
   /**

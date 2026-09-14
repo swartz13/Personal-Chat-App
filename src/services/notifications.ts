@@ -3,7 +3,7 @@ import * as Device from 'expo-device';
 import { AppState, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { auth, db } from '../config/firebase';
 
 /**
  * Notifications work serverless.
@@ -39,7 +39,22 @@ export const MESSAGE_CHANNEL = 'messages';
  */
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
-    const isCall = Boolean((notification.request.content.data as any)?.isCall);
+    const data = (notification.request.content.data as any) ?? {};
+    const isCall = Boolean(data.isCall);
+    const targetUid = data.targetUid || data.calleeUid;
+
+    // Security check: if the notification specifies a targetUid (e.g. personal call or direct message),
+    // ensure current signed-in user matches. If logged out or signed into another account on this phone, suppress!
+    const currentUid = auth.currentUser?.uid;
+    if (targetUid && (!currentUid || currentUid !== targetUid)) {
+      return {
+        shouldShowBanner: false,
+        shouldShowList: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      };
+    }
+
     const isAppOpen = AppState.currentState === 'active';
     const shouldShow = isCall || !isAppOpen;
 
@@ -120,7 +135,7 @@ export async function registerForPushNotifications(uid: string): Promise<string 
 
   try {
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
-    await setDoc(doc(db, 'users', uid), { pushToken: token }, { merge: true });
+    await setDoc(doc(db, 'users', uid), { pushToken: token, isLoggedIn: true }, { merge: true });
     return token;
   } catch (error) {
     console.warn('[notification] token could not be obtained', error);
@@ -196,7 +211,11 @@ export async function notifyUser(
 ) {
   try {
     const tokens = await collectTokens([targetUid]);
-    await sendPush(tokens, title, preview, isCall, data);
+    await sendPush(tokens, title, preview, isCall, {
+      ...data,
+      targetUid,
+      calleeUid: targetUid,
+    });
   } catch (error) {
     console.warn('[notification] error during sending', error);
   }
@@ -213,19 +232,41 @@ export async function notifyOthers(
   isCall = false
 ) {
   try {
-    const chatDoc = await getDoc(doc(db, 'chats', chatId));
-    const data = chatDoc.data();
-    const members: string[] = data?.members ?? [];
-    const isGroup = data?.type === 'group';
+    const isDirect = chatId.startsWith('direct_');
+    const isFamily = chatId === 'family';
 
-    const recipients = members.filter((member) => member !== sender.uid);
+    let recipients: string[] = [];
+    let isGroup = false;
+    let title = sender.name;
+
+    if (isDirect) {
+      // For direct chats (direct_uid1_uid2), recipient is strictly the other member
+      const members = chatId.replace('direct_', '').split('_');
+      recipients = members.filter((member) => member !== sender.uid);
+      isGroup = false;
+      title = sender.name;
+    } else {
+      const chatDoc = await getDoc(doc(db, 'chats', chatId));
+      const data = chatDoc.data();
+      const members: string[] = data?.members ?? [];
+      isGroup = isFamily || data?.type === 'group';
+      recipients = members.filter((member) => member !== sender.uid);
+      title = isGroup ? data?.name || 'Family Group' : sender.name;
+    }
+
+    if (recipients.length === 0) return;
+
     const tokens = await collectTokens(recipients);
-
-    // In group messages, it's important which group it arrived in, in one-on-one who wrote it.
-    const title = isGroup ? data?.name || 'Family Group' : sender.name;
     const body = isGroup ? `${sender.name}: ${preview}` : preview;
 
-    await sendPush(tokens, title, body, isCall, { chatId });
+    // For direct chats with a single recipient, pass targetUid so that if multiple accounts
+    // were used on the recipient's phone, only the active account receives it.
+    const targetUid = !isGroup && recipients.length === 1 ? recipients[0] : undefined;
+
+    await sendPush(tokens, title, body, isCall, {
+      chatId,
+      ...(targetUid ? { targetUid } : {}),
+    });
   } catch (error) {
     console.warn('[notification] error during sending', error);
   }

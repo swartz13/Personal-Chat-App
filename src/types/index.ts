@@ -40,6 +40,8 @@ export interface FamilyUser {
   pushToken?: string | null;
   lastSeen?: Timestamp | null;
   settings?: UserSettings;
+  /** If true, the user is currently signed in. */
+  isLoggedIn?: boolean;
   /** If true, the user is marked disabled and hidden from chat lists. */
   disabled?: boolean;
 }

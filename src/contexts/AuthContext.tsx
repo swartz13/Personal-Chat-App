@@ -54,13 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: user.email ?? '',
             displayName: user.displayName || (user.email ?? '').split('@')[0],
             photoURL: null,
+            isLoggedIn: true,
             lastSeen: serverTimestamp(),
           });
           return;
         }
         await setDoc(
           userRef,
-          { uid: user.uid, email: user.email ?? '', lastSeen: serverTimestamp() },
+          { uid: user.uid, email: user.email ?? '', isLoggedIn: true, lastSeen: serverTimestamp() },
           { merge: true }
         );
       } catch (error) {
@@ -90,7 +91,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn: async (email, password) => {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       },
-      logOut: () => signOut(auth),
+      logOut: async () => {
+        if (auth.currentUser) {
+          try {
+            await setDoc(
+              doc(db, 'users', auth.currentUser.uid),
+              { isLoggedIn: false, pushToken: null, lastSeen: serverTimestamp() },
+              { merge: true }
+            );
+          } catch (error) {
+            console.warn('[auth] could not clear token on logout', error);
+          }
+        }
+        await signOut(auth);
+      },
     }),
     [user, profile, initializing]
   );

@@ -38,12 +38,15 @@ export function subscribeToChats(uid: string, onChange: (chats: Chat[]) => void)
     q,
     (snapshot) => {
       const chats = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Chat);
-      // Let the most recently talked be at the top; if no messages, bring the group forward.
       chats.sort((a, b) => {
+        const isGroupA = a.id === FAMILY_CHAT_ID || a.type === 'group';
+        const isGroupB = b.id === FAMILY_CHAT_ID || b.type === 'group';
+        if (isGroupA && !isGroupB) return -1;
+        if (!isGroupA && isGroupB) return 1;
+
         const timeA = a.updatedAt?.toMillis?.() ?? 0;
         const timeB = b.updatedAt?.toMillis?.() ?? 0;
-        if (timeA !== timeB) return timeB - timeA;
-        return a.type === 'group' ? -1 : 1;
+        return timeB - timeA;
       });
       onChange(chats);
     },
@@ -190,14 +193,18 @@ export async function sendTextMessage(
   });
 
   // Summary field to show the last message in the chat list.
-  await setDoc(
-    doc(db, 'chats', chatId),
-    {
-      lastMessage: { text: trimmed, senderName: sender.name, at: serverTimestamp() },
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  const chatSummary: Record<string, any> = {
+    lastMessage: { text: trimmed, senderName: sender.name, at: serverTimestamp() },
+    updatedAt: serverTimestamp(),
+  };
+  if (chatId.startsWith('direct_')) {
+    chatSummary.members = chatId.replace('direct_', '').split('_');
+    chatSummary.type = 'direct';
+  } else if (chatId === FAMILY_CHAT_ID) {
+    chatSummary.type = 'group';
+  }
+
+  await setDoc(doc(db, 'chats', chatId), chatSummary, { merge: true });
 
   await notifyOthers(chatId, sender, buildPreview('text', trimmed));
 }
@@ -228,23 +235,29 @@ export async function sendMediaMessage(
   });
 
   // Summary field to show the last message in the chat list.
-  await setDoc(
-    doc(db, 'chats', chatId),
-    {
-      lastMessage: {
-        text:
-          media.kind === 'video'
-            ? 'Video'
-            : media.kind === 'file'
-              ? media.fileName || 'Document'
-              : 'Photo',
-        senderName: sender.name,
-        at: serverTimestamp(),
-      },
-      updatedAt: serverTimestamp(),
+  const previewText =
+    media.kind === 'video'
+      ? 'Video'
+      : media.kind === 'file'
+        ? media.fileName || 'Document'
+        : 'Photo';
+
+  const chatSummary: Record<string, any> = {
+    lastMessage: {
+      text: previewText,
+      senderName: sender.name,
+      at: serverTimestamp(),
     },
-    { merge: true }
-  );
+    updatedAt: serverTimestamp(),
+  };
+  if (chatId.startsWith('direct_')) {
+    chatSummary.members = chatId.replace('direct_', '').split('_');
+    chatSummary.type = 'direct';
+  } else if (chatId === FAMILY_CHAT_ID) {
+    chatSummary.type = 'group';
+  }
+
+  await setDoc(doc(db, 'chats', chatId), chatSummary, { merge: true });
 
   await notifyOthers(chatId, sender, buildPreview(media.kind, ''));
 }

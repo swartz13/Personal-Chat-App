@@ -1,6 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useAuth } from './AuthContext';
+import { useTranslation } from '../i18n/LanguageContext';
 import {
   createCall,
   endCall,
@@ -31,6 +34,7 @@ const CallContext = createContext<CallContextValue | undefined>(undefined);
 
 export function CallProvider({ children }: { children: React.ReactNode }) {
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   const [incomingCall, setIncomingCall] = useState<Call | null>(null);
   const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
 
@@ -62,6 +66,30 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const startCall = useCallback(
     async (callee: { uid: string; name: string }, type: CallType) => {
       if (!user) return;
+
+      // Prevent calling oneself
+      if (callee.uid === user.uid) {
+        Alert.alert(t('call.failed'), t('call.cannotCallSelf'));
+        return;
+      }
+
+      // Check whether callee is currently signed in
+      try {
+        const calleeSnap = await getDoc(doc(db, 'users', callee.uid));
+        const calleeData = calleeSnap.data();
+        const isOnline = Boolean(calleeData?.isLoggedIn && calleeData?.pushToken);
+
+        if (!isOnline) {
+          Alert.alert(
+            t('call.userOfflineTitle'),
+            t('call.userOffline', { name: callee.name })
+          );
+          return;
+        }
+      } catch (checkErr) {
+        console.warn('[call] could not verify callee presence', checkErr);
+      }
+
       try {
         const callId = await createCall({ uid: user.uid, name: myName }, callee, type);
         setActiveCall({ callId, isCaller: true, type, peerName: callee.name });
@@ -76,10 +104,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         );
       } catch (error) {
         console.warn('[call] could not be started', error);
-        Alert.alert('Call failed', 'Check your connection and try again.');
+        Alert.alert(t('call.failed'), t('call.failedHint'));
       }
     },
-    [user, myName]
+    [user, myName, t]
   );
 
   const acceptIncoming = useCallback(() => {

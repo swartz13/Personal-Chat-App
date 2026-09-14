@@ -83,6 +83,9 @@ export const translations = {
       switchCamera: 'Flip Camera',
       accept: 'Accept',
       reject: 'Decline',
+      userOfflineTitle: 'User Unavailable',
+      userOffline: '{name} is currently offline or not signed in.',
+      cannotCallSelf: 'You cannot call yourself.',
     },
     history: {
       title: 'Call History',
@@ -215,6 +218,9 @@ export const translations = {
       switchCamera: 'Kamerayı Çevir',
       accept: 'Kabul Et',
       reject: 'Reddet',
+      userOfflineTitle: 'Kullanıcı Çevrimdışı',
+      userOffline: '{name} şu anda oturum açmamış veya çevrimdışı.',
+      cannotCallSelf: 'Kendinizi arayamazsınız.',
     },
     history: {
       title: 'Görüşme Geçmişi',
@@ -347,6 +353,9 @@ export const translations = {
       switchCamera: 'Сменить камеру',
       accept: 'Принять',
       reject: 'Отклонить',
+      userOfflineTitle: 'Пользователь не в сети',
+      userOffline: '{name} сейчас не в сети или не вошел в систему.',
+      cannotCallSelf: 'Вы не можете позвонить самому себе.',
     },
     history: {
       title: 'История звонков',
