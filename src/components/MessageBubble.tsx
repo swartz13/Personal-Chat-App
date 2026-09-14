@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { formatFileSize } from '../services/media';
 import { RichText } from '../utils/richText';
+import { useTranslation } from '../i18n/LanguageContext';
 import type { Message } from '../types';
 import { colors, radius, spacing } from '../theme';
 
@@ -32,6 +33,7 @@ export default function MessageBubble({
   ownColor,
   onLongPress,
 }: Props) {
+  const { t } = useTranslation();
   const isMedia = message.type === 'image' || message.type === 'video';
   const isFile = message.type === 'file';
 
@@ -83,7 +85,7 @@ export default function MessageBubble({
             </View>
             <View style={styles.fileInfo}>
               <Text style={styles.fileName} numberOfLines={2}>
-                {message.fileName || 'Document'}
+                {message.fileName || t('chat.document')}
               </Text>
               <Text style={styles.fileSize}>{formatFileSize(message.fileSize)}</Text>
             </View>

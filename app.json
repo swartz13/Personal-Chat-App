@@ -8,7 +8,7 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.familychat"
+      "bundleIdentifier": "com.aile.sohbet"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.example.familychat",
+      "package": "com.aile.sohbet",
       "useNextNotificationsApi": true,
       "googleServicesFile": "./google-services.json",
       "permissions": [

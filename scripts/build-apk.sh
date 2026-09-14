@@ -6,7 +6,11 @@
 set -euo pipefail
 
 export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk-amd64}"
-export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+if [ -d "/data/Android/Sdk" ]; then
+  export ANDROID_HOME="/data/Android/Sdk"
+else
+  export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+fi
 export PATH="$ANDROID_HOME/platform-tools:$PATH"
 
 APK="android/app/build/outputs/apk/release/app-release.apk"

@@ -9,6 +9,7 @@ import {
 } from '@expo-google-fonts/poppins';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { LanguageProvider } from './src/i18n/LanguageContext';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { CallProvider, useCall } from './src/contexts/CallContext';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -78,12 +79,14 @@ export default function App() {
     // Outermost wrapper for gestures like pinch-to-zoom to work.
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <CallProvider>
-            <StatusBar style="light" />
-            <AppShell />
-          </CallProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <CallProvider>
+              <StatusBar style="light" />
+              <AppShell />
+            </CallProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

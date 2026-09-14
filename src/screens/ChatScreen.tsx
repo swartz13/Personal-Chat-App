@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
 import { useCall } from '../contexts/CallContext';
+import { useTranslation } from '../i18n/LanguageContext';
 import { listOtherMembers } from '../services/calls';
 import {
   FAMILY_CHAT_ID,
@@ -56,6 +57,7 @@ export default function ChatScreen({ navigation, route }: Props) {
   const { chatId, title, isGroup, peerPhoto, peerUid } = route.params;
   const { user, profile } = useAuth();
   const { startCall } = useCall();
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -74,7 +76,7 @@ export default function ChatScreen({ navigation, route }: Props) {
   /** When did the user last clear this chat (messages before this are hidden). */
   const [clearedAt, setClearedAt] = useState<number | null>(null);
 
-  const senderName = profile?.displayName || user?.displayName || 'Me';
+  const senderName = profile?.displayName || user?.displayName || t('chat.me');
   const settings = profile?.settings ?? {};
   const bubbleColor = settings.bubbleColor ?? undefined;
 
@@ -111,10 +113,10 @@ export default function ChatScreen({ navigation, route }: Props) {
       },
       () => {
         setLoading(false);
-        setError('Messages could not be loaded. Check your connection and Firestore rules.');
+        setError(t('chat.loadError'));
       }
     );
-  }, [user, chatId]);
+  }, [user, chatId, t]);
 
   /** Show messages that arrived after clearing the chat. */
   const visibleMessages = useMemo(() => {
@@ -144,11 +146,11 @@ export default function ChatScreen({ navigation, route }: Props) {
     } catch (caught) {
       console.warn('[chat] message could not be sent', caught);
       setDraft(text); // Don't lose the text that couldn't be sent.
-      setError('Message could not be sent.');
+      setError(t('chat.sendFailed'));
     } finally {
       sendingRef.current = false;
     }
-  }, [draft, user, senderName, chatId]);
+  }, [draft, user, senderName, chatId, t]);
 
   /** Uploads the selected photo/video and adds it to the chat as a message. */
   const handleMedia = useCallback(
@@ -159,7 +161,7 @@ export default function ChatScreen({ navigation, route }: Props) {
       try {
         media = await pickFn();
       } catch (caught) {
-        Alert.alert('Permission Required', caught instanceof MediaError ? caught.message : 'Media could not be selected.');
+        Alert.alert(t('common.permissionRequired'), caught instanceof MediaError ? caught.message : t('chat.uploadFailed'));
         return;
       }
       if (!media) return;
@@ -181,16 +183,16 @@ export default function ChatScreen({ navigation, route }: Props) {
       } catch (caught) {
         console.warn('[chat] media could not be sent', caught);
         Alert.alert(
-          'Send Failed',
+          t('common.error'),
           caught instanceof MediaError
             ? caught.message
-            : 'File could not be uploaded. Check your connection and try again.'
+            : t('chat.uploadFailed')
         );
       } finally {
         setUploadProgress(null);
       }
     },
-    [user, senderName, uploadProgress, chatId]
+    [user, senderName, uploadProgress, chatId, t]
   );
 
   const handleAttach = useCallback(() => setAttachOpen(true), []);
@@ -219,8 +221,8 @@ export default function ChatScreen({ navigation, route }: Props) {
         const members = await listOtherMembers(FAMILY_CHAT_ID, user.uid);
         if (members.length === 0) {
           Alert.alert(
-            'No one to call',
-            'Other family members will appear here when they log into the app.'
+            t('chat.noOneToCall'),
+            t('chat.noOneToCallHint')
           );
           return;
         }
@@ -228,10 +230,10 @@ export default function ChatScreen({ navigation, route }: Props) {
         setCallPicker({ type, contacts: members });
       } catch (caught) {
         console.warn('[chat] contact list could not be retrieved', caught);
-        Alert.alert('Error', 'Contact list could not be retrieved.');
+        Alert.alert(t('common.error'), t('chat.loadError'));
       }
     },
-    [user, isGroup, peerUid, title, startCall]
+    [user, isGroup, peerUid, title, startCall, t]
   );
 
   /**
@@ -253,7 +255,7 @@ export default function ChatScreen({ navigation, route }: Props) {
       // Text messages can be copied to clipboard.
       if (msg.text) {
         options.push({
-          text: 'Copy',
+          text: t('common.copy'),
           onPress: async () => {
             await Clipboard.setStringAsync(msg.text);
           },
@@ -262,15 +264,15 @@ export default function ChatScreen({ navigation, route }: Props) {
 
       if (isMedia && msg.mediaUrl) {
         options.push({
-          text: 'Save to gallery',
+          text: t('chat.saveToGallery'),
           onPress: async () => {
             try {
               await saveToGallery(msg.mediaUrl!, msg.fileName ?? undefined);
-              Alert.alert('Saved', 'File saved to "Family Chat" album.');
+              Alert.alert(t('common.saved'), t('chat.savedToAlbum'));
             } catch (caught) {
               Alert.alert(
-                'Could not save',
-                caught instanceof MediaError ? caught.message : 'File could not be saved to gallery.'
+                t('common.error'),
+                caught instanceof MediaError ? caught.message : t('chat.saveFailed')
               );
             }
           },
@@ -279,46 +281,46 @@ export default function ChatScreen({ navigation, route }: Props) {
 
       if (!isRead) {
         options.push({
-          text: 'Unsend',
+          text: t('chat.unsend'),
           style: 'destructive',
           onPress: async () => {
             try {
               await unsendMessage(chatId, msg.id);
             } catch (caught) {
               console.warn('[chat] message could not be unsent', caught);
-              Alert.alert('Cannot Unsend', 'The message may have been seen in the meantime.');
+              Alert.alert(t('common.warning'), t('chat.cannotUnsend'));
             }
           },
         });
       }
 
       if (options.length === 0) {
-        Alert.alert('Cannot Unsend', 'This message has been seen by the other party.');
+        Alert.alert(t('common.warning'), t('chat.cannotUnsend'));
         return;
       }
 
-      options.push({ text: 'Cancel', style: 'cancel' });
-      Alert.alert('Message', isRead ? 'This message has been seen, cannot unsend.' : '', options);
+      options.push({ text: t('common.cancel'), style: 'cancel' });
+      Alert.alert(t('common.message'), isRead ? t('chat.cannotUnsend') : '', options);
     },
-    [user, chatId]
+    [user, chatId, t]
   );
 
   /** Clears the chat only on this phone; it remains for the other party. */
   const handleClearChat = useCallback(() => {
     if (!user) return;
     Alert.alert(
-      'Clear chat',
-      'This chat will only be deleted for you, it will remain for the other party.',
+      t('chat.clearChat'),
+      t('chat.clearChatConfirm'),
       [
         {
-          text: 'Clear',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => clearChatForMe(chatId, user.uid),
         },
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
       ]
     );
-  }, [chatId, user]);
+  }, [chatId, user, t]);
 
   const openMedia = useCallback(
     (message: Message) => {
@@ -327,7 +329,7 @@ export default function ChatScreen({ navigation, route }: Props) {
       // Documents are opened/downloaded in the phone's native app.
       if (message.type === 'file') {
         Linking.openURL(message.mediaUrl).catch(() =>
-          Alert.alert('Could not open', 'No app found to open this document.')
+          Alert.alert(t('common.couldNotOpen'), t('common.noAppForDocument'))
         );
         return;
       }
@@ -451,7 +453,7 @@ export default function ChatScreen({ navigation, route }: Props) {
 
           <TextInput
             style={[styles.input, { backgroundColor: theme.background, color: theme.text }]}
-            placeholder="Type a message..."
+            placeholder={t('chat.typeMessage')}
             placeholderTextColor={theme.textMuted}
             value={draft}
             onChangeText={setDraft}
@@ -467,7 +469,7 @@ export default function ChatScreen({ navigation, route }: Props) {
             onPress={handleSend}
             disabled={!draft.trim()}
           >
-            <Text style={styles.sendButtonText}>Send</Text>
+            <Text style={styles.sendButtonText}>{t('common.send')}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

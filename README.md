@@ -9,6 +9,7 @@ A private, self-hosted family chat application with real-time messaging, voice/v
 - Photo, video, and document sharing (Cloudinary)
 - Push notifications (Expo Push Service)
 - Rich text formatting (*bold*, _italic_, ~strikethrough~)
+- Multi-language support: English, Turkish, and Russian (instant in-app switching)
 - Customizable app themes and chat backgrounds
 - Call history
 - Message unsend (if unread)
@@ -20,6 +21,7 @@ A private, self-hosted family chat application with real-time messaging, voice/v
 - **Backend**: Firebase (Auth + Firestore)
 - **Communication**: WebRTC for calls
 - **Media Storage**: Cloudinary
+- **Internationalization**: Built-in lightweight i18n (English, Turkish, Russian)
 - **Language**: TypeScript
 
 ## Prerequisites

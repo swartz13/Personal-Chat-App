@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { useTranslation } from '../i18n/LanguageContext';
 import { spacing } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MediaViewer'>;
@@ -97,6 +98,7 @@ function ZoomableImage({ url }: { url: string }) {
 export default function MediaViewerScreen({ route, navigation }: Props) {
   const { url, kind, senderName } = route.params;
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   // Set up video player only when a video is opened.
   const player = useVideoPlayer(kind === 'video' ? url : null, (playerInstance) => {
@@ -115,7 +117,7 @@ export default function MediaViewerScreen({ route, navigation }: Props) {
             {senderName}
           </Text>
           {kind === 'image' ? (
-            <Text style={styles.headerHint}>Pinch to zoom</Text>
+            <Text style={styles.headerHint}>{t('mediaViewer.pinchToZoom')}</Text>
           ) : null}
         </View>
       </View>

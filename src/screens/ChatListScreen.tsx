@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../i18n/LanguageContext';
 import { directChatId, subscribeToChats } from '../services/chat';
 import Avatar from '../components/Avatar';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -50,6 +51,7 @@ function formatTime(at: any) {
 
 export default function ChatListScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [chats, setChats] = useState<Chat[]>([]);
@@ -85,10 +87,10 @@ export default function ChatListScreen({ navigation }: Props) {
         result.push({
           key: chat.id,
           chatId: chat.id,
-          title: chat.name || 'Family Group',
+          title: chat.name || t('chatList.familyGroup'),
           subtitle: chat.lastMessage
             ? `${chat.lastMessage.senderName}: ${chat.lastMessage.text}`
-            : 'No messages yet',
+            : t('chatList.noMessages'),
           time: formatTime(chat.lastMessage?.at),
           isGroup: true,
         });
@@ -104,8 +106,8 @@ export default function ChatListScreen({ navigation }: Props) {
         key: chat.id,
         chatId: chat.id,
         peerUid: otherUid,
-        title: contact?.displayName || 'Family member',
-        subtitle: chat.lastMessage?.text || 'No messages yet',
+        title: contact?.displayName || t('chatList.familyMember'),
+        subtitle: chat.lastMessage?.text || t('chatList.noMessages'),
         time: formatTime(chat.lastMessage?.at),
         isGroup: false,
         photo: contact?.photoURL,
@@ -119,8 +121,8 @@ export default function ChatListScreen({ navigation }: Props) {
         key: `new_${contact.uid}`,
         chatId: directChatId(user.uid, contact.uid),
         peerUid: contact.uid,
-        title: contact.displayName || 'Family member',
-        subtitle: 'Start chat',
+        title: contact.displayName || t('chatList.familyMember'),
+        subtitle: t('chatList.startChat'),
         time: '',
         isGroup: false,
         photo: contact.photoURL,
@@ -128,12 +130,12 @@ export default function ChatListScreen({ navigation }: Props) {
     }
 
     return result;
-  }, [chats, users, user]);
+  }, [chats, users, user, t]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm, backgroundColor: theme.headerBackground }]}>
-        <Text style={styles.headerTitle}>Family</Text>
+        <Text style={styles.headerTitle}>{t('chatList.title')}</Text>
         <View style={styles.headerButtons}>
           <Pressable onPress={() => navigation.navigate('CallHistory')} hitSlop={10}>
             <Ionicons name="time-outline" size={24} color="#FFFFFF" />

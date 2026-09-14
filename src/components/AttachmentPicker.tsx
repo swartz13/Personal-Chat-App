@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from '../i18n/LanguageContext';
 import { colors, radius, spacing } from '../theme';
 import { useAppTheme } from '../hooks/useAppTheme';
 
@@ -13,25 +14,21 @@ interface Props {
   onCancel: () => void;
 }
 
-const OPTIONS: Array<{
-  kind: AttachmentKind;
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  color: string;
-}> = [
-  { kind: 'gallery', icon: 'images', label: 'Gallery', color: '#7A5AF8' },
-  { kind: 'camera', icon: 'camera', label: 'Camera', color: '#E8467C' },
-  { kind: 'document', icon: 'document-text', label: 'Document', color: '#2F80ED' },
-];
-
-/**
- * Lets the user select the type of attachment to send.
- * Since the system alert box shows a maximum of three buttons, we use our
- * own modal; so "Cancel" is always visible.
- */
 export default function AttachmentPicker({ visible, onSelect, onCancel }: Props) {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
+  const { t } = useTranslation();
+
+  const options: Array<{
+    kind: AttachmentKind;
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    color: string;
+  }> = [
+    { kind: 'gallery', icon: 'images', label: t('attachment.gallery'), color: '#7A5AF8' },
+    { kind: 'camera', icon: 'camera', label: t('attachment.camera'), color: '#E8467C' },
+    { kind: 'document', icon: 'document-text', label: t('attachment.document'), color: '#2F80ED' },
+  ];
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
@@ -43,10 +40,10 @@ export default function AttachmentPicker({ visible, onSelect, onCancel }: Props)
           ]}
           onPress={() => {}}
         >
-          <Text style={[styles.title, { color: theme.text }]}>What would you like to send?</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{t('attachment.title')}</Text>
 
           <View style={styles.options}>
-            {OPTIONS.map((option) => (
+            {options.map((option) => (
               <Pressable
                 key={option.kind}
                 style={styles.option}
@@ -61,7 +58,7 @@ export default function AttachmentPicker({ visible, onSelect, onCancel }: Props)
           </View>
 
           <Pressable style={[styles.cancel, { backgroundColor: theme.background }]} onPress={onCancel}>
-            <Text style={[styles.cancelText, { color: theme.textMuted }]}>Cancel</Text>
+            <Text style={[styles.cancelText, { color: theme.textMuted }]}>{t('common.cancel')}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

@@ -1,8 +1,8 @@
 /**
- * firebase/auth paketinin React Native yapisi getReactNativePersistence'i
- * disari acar, ancak pakete gelen TypeScript tipleri web yapisini gosterir.
- * Asagidaki bildirim mevcut tiplere yalnizca bu fonksiyonu ekler (modul
- * genisletmesi); calisma zamaninda Metro dogru yapiyi yukler.
+ * The React Native build of the firebase/auth package exposes getReactNativePersistence,
+ * but the TypeScript definitions bundled with the package reflect the web build.
+ * The declaration below augments the module to include this function; Metro loads
+ * the correct runtime bundle at runtime.
  */
 import 'firebase/auth';
 

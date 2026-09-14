@@ -9,34 +9,32 @@ import {
   View,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../i18n/LanguageContext';
 import { colors, fonts, radius, spacing } from '../theme';
-
-/** Converts Firebase error codes to understandable English messages. */
-function describeAuthError(code: string) {
-  switch (code) {
-    case 'auth/invalid-email':
-      return 'Invalid email address.';
-    case 'auth/user-not-found':
-    case 'auth/wrong-password':
-    case 'auth/invalid-credential':
-      return 'Incorrect email or password.';
-    case 'auth/too-many-requests':
-      return 'Too many attempts. Please wait a bit and try again.';
-    case 'auth/network-request-failed':
-      return 'Network connection failed.';
-    default:
-      return 'Login failed. Please try again.';
-  }
-}
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const canSubmit = email.trim().length > 0 && password.length > 0 && !busy;
+
+  function describeAuthError(code: string) {
+    switch (code) {
+      case 'auth/invalid-email':
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return t('auth.signInFailed');
+      case 'auth/network-request-failed':
+        return t('chat.loadError');
+      default:
+        return t('auth.signInFailed');
+    }
+  }
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -54,16 +52,15 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      // If behavior is not given on Android, the keyboard covers the login button.
       behavior="padding"
     >
       <View style={styles.card}>
-        <Text style={styles.title}>Family Chat</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+        <Text style={styles.title}>{t('auth.appName')}</Text>
+        <Text style={styles.subtitle}>{t('auth.tagline')}</Text>
 
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder={t('auth.email')}
           placeholderTextColor={colors.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
@@ -74,7 +71,7 @@ export default function LoginScreen() {
         />
         <TextInput
           style={styles.input}
-          placeholder="Password"
+          placeholder={t('auth.password')}
           placeholderTextColor={colors.textMuted}
           secureTextEntry
           textContentType="password"
@@ -93,7 +90,7 @@ export default function LoginScreen() {
           {busy ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={styles.buttonText}>Sign In</Text>
+            <Text style={styles.buttonText}>{t('auth.signIn')}</Text>
           )}
         </TouchableOpacity>
       </View>

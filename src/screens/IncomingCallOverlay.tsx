@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from '../i18n/LanguageContext';
 import type { Call } from '../types';
 import { colors, spacing } from '../theme';
 
@@ -11,19 +12,14 @@ interface Props {
   onReject: () => void;
 }
 
-/** Incoming call screen: displayed full screen over any screen. */
 /** Phone ring pattern: vibrate one sec, wait a bit, repeat. */
 const VIBRATION_PATTERN = [0, 900, 700, 900, 700];
 
 export default function IncomingCallOverlay({ call, onAccept, onReject }: Props) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const isVideo = call.type === 'video';
-  /**
-   * The application does not play the ringtone itself: the call notification
-   * plays the phone's own ringtone from the RING channel. Thus, the volume,
-   * silent mode, and do not disturb settings comply with the phone's own rules.
-   * We only provide vibration here.
-   */
+
   useEffect(() => {
     Vibration.vibrate(VIBRATION_PATTERN, true);
     return () => Vibration.cancel();
@@ -37,7 +33,7 @@ export default function IncomingCallOverlay({ call, onAccept, onReject }: Props)
         </View>
         <Text style={styles.name}>{call.callerName}</Text>
         <Text style={styles.subtitle}>
-          {isVideo ? 'Video call is calling…' : 'Voice call is calling…'}
+          {isVideo ? t('call.isCallingVideo') : t('call.isCallingVoice')}
         </Text>
       </View>
 
@@ -46,14 +42,14 @@ export default function IncomingCallOverlay({ call, onAccept, onReject }: Props)
           <Pressable style={[styles.button, styles.reject]} onPress={onReject} hitSlop={8}>
             <Ionicons name="call" size={30} color="#FFFFFF" style={styles.rejectIcon} />
           </Pressable>
-          <Text style={styles.actionLabel}>Reject</Text>
+          <Text style={styles.actionLabel}>{t('call.reject')}</Text>
         </View>
 
         <View style={styles.action}>
           <Pressable style={[styles.button, styles.accept]} onPress={onAccept} hitSlop={8}>
             <Ionicons name={isVideo ? 'videocam' : 'call'} size={30} color="#FFFFFF" />
           </Pressable>
-          <Text style={styles.actionLabel}>Accept</Text>
+          <Text style={styles.actionLabel}>{t('call.accept')}</Text>
         </View>
       </View>
     </View>

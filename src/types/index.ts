@@ -2,34 +2,38 @@ import type { Timestamp } from 'firebase/firestore';
 
 export type MessageType = 'text' | 'image' | 'video' | 'audio' | 'file';
 
-/** Sohbet turu: aile grubu ya da iki kisi arasinda. */
+/** Chat type: family group or direct chat between two users. */
 export type ChatType = 'group' | 'direct';
 
 export interface Chat {
   id: string;
   type: ChatType;
-  /** Grup sohbetinin adi; birebir sohbetlerde bos, karsi tarafin adi gosterilir. */
+  /** Group chat name; empty for direct chats where the other user's name is displayed. */
   name: string;
   members: string[];
   lastMessage?: { text: string; senderName: string; at: Timestamp | null } | null;
   updatedAt?: Timestamp | null;
 }
 
-/** Kullanicinin kendi belirledigi gorunum tercihleri. */
+export type SupportedLanguage = 'en' | 'tr' | 'ru';
+
+/** User appearance and application preferences. */
 export interface UserSettings {
-  /** Hazir arka plan kimligi ya da yuklenen resmin adresi. */
+  /** Background preset ID or custom uploaded image URL. */
   chatBackground?: string | null;
-  /** Uygulamanin ana rengi (baslik cubugu, dugmeler, vurgular). */
+  /** Primary application color palette (header bar, buttons, accents). */
   appColor?: string | null;
-  /** Kendi mesaj balonlarinin rengi. */
+  /** User's own chat message bubble color. */
   bubbleColor?: string | null;
-  /** Gelen fotograf ve videolar telefon galerisine de kaydedilsin mi? */
+  /** Automatically save received media to phone gallery when viewed. */
   saveToGallery?: boolean;
+  /** Selected application language ('en' | 'tr' | 'ru'). */
+  language?: SupportedLanguage;
 }
 
 export interface FamilyUser {
   uid: string;
-  /** Sohbette gorunen takma ad. */
+  /** Display name shown in chat. */
   displayName: string;
   email: string;
   photoURL?: string | null;
@@ -43,13 +47,13 @@ export interface Message {
   senderId: string;
   senderName: string;
   type: MessageType;
-  /** Metin mesajlarinin icerigi, medya mesajlarinda alt yazi olarak kullanilir. */
+  /** Text message content, or caption for media messages. */
   text: string;
-  /** image / video / audio mesajlari icin dosya adresi. */
+  /** File URL for image / video / audio messages. */
   mediaUrl?: string | null;
-  /** Videolarda ilk kareden uretilen onizleme adresi. */
+  /** Video thumbnail URL generated from the first frame. */
   thumbUrl?: string | null;
-  /** Belge mesajlarinda dosya adi ve boyutu. */
+  /** File name and size in bytes for document messages. */
   fileName?: string | null;
   fileSize?: number | null;
   createdAt: Timestamp | null;
@@ -58,7 +62,7 @@ export interface Message {
 
 export type CallType = 'video' | 'audio';
 
-/** Aramanin yasam dongusu: caliyor -> kabul edildi -> bitti. */
+/** Call lifecycle status: ringing -> accepted -> ended / missed. */
 export type CallStatus = 'ringing' | 'accepted' | 'rejected' | 'ended' | 'missed';
 
 export interface Call {
@@ -69,12 +73,12 @@ export interface Call {
   calleeName: string;
   type: CallType;
   status: CallStatus;
-  /** Arayan tarafin baglanti teklifi. */
+  /** Caller connection offer (SDP). */
   offer?: { type: string; sdp: string } | null;
-  /** Aranan tarafin yaniti. */
+  /** Callee connection answer (SDP). */
   answer?: { type: string; sdp: string } | null;
   createdAt: Timestamp | null;
-  /** Aramanin kabul edildigi an; sure hesabinda kullanilir. */
+  /** Timestamp when call was accepted; used for duration calculation. */
   acceptedAt?: Timestamp | null;
   endedAt?: Timestamp | null;
 }

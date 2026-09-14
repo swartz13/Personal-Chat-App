@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from '../i18n/LanguageContext';
 import { colors, radius, spacing } from '../theme';
 import { useAppTheme } from '../hooks/useAppTheme';
 import type { CallType } from '../types';
@@ -19,20 +20,14 @@ interface Props {
   onCancel: () => void;
 }
 
-/**
- * List to select who to call.
- *
- * Since the system alert box shows a maximum of three buttons, the "Cancel" button 
- * was getting lost in a family of four; so we use our own list.
- */
 export default function ContactPicker({ visible, type, contacts, onSelect, onCancel }: Props) {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
+  const { t } = useTranslation();
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable style={styles.backdrop} onPress={onCancel}>
-        {/* We stop touch propagation here so touching the content doesn't close the window. */}
         <Pressable
           style={[
             styles.sheet,
@@ -47,10 +42,10 @@ export default function ContactPicker({ visible, type, contacts, onSelect, onCan
               color={theme.accent}
             />
             <Text style={[styles.title, { color: theme.text }]}>
-              {type === 'video' ? 'Video call' : 'Voice call'}
+              {type === 'video' ? t('contactPicker.videoCall') : t('contactPicker.voiceCall')}
             </Text>
           </View>
-          <Text style={[styles.subtitle, { color: theme.textMuted }]}>Who would you like to call?</Text>
+          <Text style={[styles.subtitle, { color: theme.textMuted }]}>{t('contactPicker.whoToCall')}</Text>
 
           {contacts.map((contact) => (
             <Pressable
@@ -68,7 +63,7 @@ export default function ContactPicker({ visible, type, contacts, onSelect, onCan
           ))}
 
           <Pressable style={[styles.cancel, { backgroundColor: theme.background }]} onPress={onCancel}>
-            <Text style={[styles.cancelText, { color: theme.textMuted }]}>Cancel</Text>
+            <Text style={[styles.cancelText, { color: theme.textMuted }]}>{t('common.cancel')}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

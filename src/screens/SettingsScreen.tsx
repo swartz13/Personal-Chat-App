@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../i18n/LanguageContext';
 import Avatar from '../components/Avatar';
 import {
   APP_COLOR_PRESETS,
@@ -31,6 +32,7 @@ import { CALL_CHANNEL, MESSAGE_CHANNEL } from '../services/notifications';
 import * as IntentLauncher from 'expo-intent-launcher';
 import Constants from 'expo-constants';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import type { SupportedLanguage } from '../types';
 import { colors, fonts, radius, spacing } from '../theme';
 import { useAppTheme } from '../hooks/useAppTheme';
 
@@ -58,6 +60,7 @@ function Section({
 
 export default function SettingsScreen({ navigation }: Props) {
   const { user, profile, logOut } = useAuth();
+  const { t, language, setLanguage } = useTranslation();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
 
@@ -70,13 +73,20 @@ export default function SettingsScreen({ navigation }: Props) {
   const appColor = settings.appColor ?? 'green';
   const bubbleColor = settings.bubbleColor ?? BUBBLE_PRESETS[0].color;
 
+  // Sync saved profile language on load if different
+  useEffect(() => {
+    if (profile?.settings?.language && profile.settings.language !== language) {
+      setLanguage(profile.settings.language);
+    }
+  }, [profile?.settings?.language]);
+
   async function saveNickname() {
     if (!user || nickname.trim() === profile?.displayName) return;
     setSaving(true);
     try {
       await updateDisplayName(user.uid, nickname);
     } catch (error: any) {
-      Alert.alert('Could not save', error?.message ?? 'Nickname could not be saved.');
+      Alert.alert(t('common.error'), error?.message ?? t('common.error'));
       setNickname(profile?.displayName ?? '');
     } finally {
       setSaving(false);
@@ -89,15 +99,15 @@ export default function SettingsScreen({ navigation }: Props) {
       const media = await pickFromGallery();
       if (!media) return;
       if (media.kind !== 'image') {
-        Alert.alert('Photos only', 'Video cannot be used as a profile picture.');
+        Alert.alert(t('settings.photosOnly'), t('settings.videoNotAllowed'));
         return;
       }
       setPhotoLoading(true);
       await updatePhoto(user.uid, media);
     } catch (error) {
       Alert.alert(
-        'Could not load',
-        error instanceof MediaError ? error.message : 'Profile picture could not be loaded.'
+        t('common.error'),
+        error instanceof MediaError ? error.message : t('common.error')
       );
     } finally {
       setPhotoLoading(false);
@@ -109,25 +119,23 @@ export default function SettingsScreen({ navigation }: Props) {
       pickPhoto();
       return;
     }
-    Alert.alert('Profile photo', '', [
-      { text: 'Change', onPress: pickPhoto },
+    Alert.alert(t('settings.profilePhoto'), '', [
+      { text: t('settings.change'), onPress: pickPhoto },
       {
-        text: 'Remove',
+        text: t('settings.remove'),
         style: 'destructive',
         onPress: () => user && removePhoto(user.uid),
       },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   }
 
   /**
    * Lets user select notification sounds from the phone's native settings screen.
-   * On Android, a notification channel's sound cannot be changed from within the app;
-   * the system screen lists all ringtones on the phone.
    */
   async function selectSound(channel: string, title: string) {
     if (Platform.OS !== 'android') return;
-    const pkg = Constants.expoConfig?.android?.package ?? 'com.example.familychat';
+    const pkg = Constants.expoConfig?.android?.package ?? 'com.aile.sohbet';
 
     try {
       await IntentLauncher.startActivityAsync(
@@ -141,11 +149,7 @@ export default function SettingsScreen({ navigation }: Props) {
       );
     } catch (error) {
       console.warn('[settings] could not open sound screen', error);
-      Alert.alert(
-        title,
-        'Sound settings screen could not be opened. You can navigate through ' +
-          'Settings > Apps > Family > Notifications on your phone.'
-      );
+      Alert.alert(title, t('settings.soundHint'));
     }
   }
 
@@ -158,11 +162,17 @@ export default function SettingsScreen({ navigation }: Props) {
       const { url } = await uploadMedia('background', user.uid, media);
       await updateSettings(user.uid, { ...settings, chatBackground: url });
     } catch (error) {
-      Alert.alert('Could not load', 'Background image could not be loaded.');
+      Alert.alert(t('common.error'), t('chat.uploadFailed'));
     } finally {
       setPhotoLoading(false);
     }
   }
+
+  const languagesList: Array<{ key: SupportedLanguage; label: string }> = [
+    { key: 'tr', label: 'Türkçe' },
+    { key: 'en', label: 'English' },
+    { key: 'ru', label: 'Русский' },
+  ];
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -170,7 +180,7 @@ export default function SettingsScreen({ navigation }: Props) {
         <Pressable onPress={() => navigation.goBack()} hitSlop={10}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </Pressable>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{t('settings.title')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl * 3 }]}>
@@ -189,16 +199,56 @@ export default function SettingsScreen({ navigation }: Props) {
           <Text style={[styles.email, { color: theme.textMuted }]}>{user?.email}</Text>
         </View>
 
-        <Section title="Nickname" surface={theme.surface} titleColor={theme.textMuted}>
+        {/* Language Selection */}
+        <Section title={t('settings.language')} surface={theme.surface} titleColor={theme.textMuted}>
           <Text style={[styles.hint, { color: theme.textMuted }]}>
-            This name appears above your messages and in searches.
+            {t('settings.languageHint')}
+          </Text>
+          <View style={styles.languageRow}>
+            {languagesList.map((item) => {
+              const isSelected = language === item.key;
+              return (
+                <Pressable
+                  key={item.key}
+                  onPress={async () => {
+                    await setLanguage(item.key);
+                    if (user) {
+                      updateSettings(user.uid, { ...settings, language: item.key });
+                    }
+                  }}
+                  style={[
+                    styles.languageChip,
+                    {
+                      borderColor: isSelected ? theme.accent : theme.border,
+                      backgroundColor: isSelected ? theme.accent : theme.surface,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.languageChipText,
+                      { color: isSelected ? '#FFFFFF' : theme.text },
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                  {isSelected && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                </Pressable>
+              );
+            })}
+          </View>
+        </Section>
+
+        <Section title={t('settings.nickname')} surface={theme.surface} titleColor={theme.textMuted}>
+          <Text style={[styles.hint, { color: theme.textMuted }]}>
+            {t('settings.nicknameHint')}
           </Text>
           <View style={styles.nicknameRow}>
             <TextInput
               style={[styles.input, { color: theme.text, borderColor: theme.border }]}
               value={nickname}
               onChangeText={setNickname}
-              placeholder="Your nickname"
+              placeholder={t('settings.nicknamePlaceholder')}
               placeholderTextColor={colors.textMuted}
               maxLength={24}
               onBlur={saveNickname}
@@ -216,15 +266,15 @@ export default function SettingsScreen({ navigation }: Props) {
               {saving ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={styles.saveButtonText}>Save</Text>
+                <Text style={styles.saveButtonText}>{t('common.save')}</Text>
               )}
             </Pressable>
           </View>
         </Section>
 
-        <Section title="App color" surface={theme.surface} titleColor={theme.textMuted}>
+        <Section title={t('settings.appColor')} surface={theme.surface} titleColor={theme.textMuted}>
           <Text style={[styles.hint, { color: theme.textMuted }]}>
-            The title bar, buttons, and accents use this color.
+            {t('settings.appColorHint')}
           </Text>
           <ScrollView
             horizontal
@@ -239,8 +289,6 @@ export default function SettingsScreen({ navigation }: Props) {
                 }}
                 style={[
                   styles.swatch,
-                  // The box shows the title bar tone of that color; so
-                  // dark options like "Night" are distinguished from others.
                   { backgroundColor: preset.dark, borderColor: preset.vibrant },
                   appColor === preset.id && styles.swatchSelected,
                 ]}
@@ -253,7 +301,7 @@ export default function SettingsScreen({ navigation }: Props) {
           </ScrollView>
         </Section>
 
-        <Section title="Chat background" surface={theme.surface} titleColor={theme.textMuted}>
+        <Section title={t('settings.chatBackground')} surface={theme.surface} titleColor={theme.textMuted}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -282,11 +330,11 @@ export default function SettingsScreen({ navigation }: Props) {
             </Pressable>
           </ScrollView>
           <Text style={[styles.hint, { color: theme.textMuted }]}>
-            Only changes the background of the chat screen. The last box lets you select an image from your phone.
+            {t('settings.chatBackgroundHint')}
           </Text>
         </Section>
 
-        <Section title="Message bubble color" surface={theme.surface} titleColor={theme.textMuted}>
+        <Section title={t('settings.bubbleColor')} surface={theme.surface} titleColor={theme.textMuted}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -306,37 +354,36 @@ export default function SettingsScreen({ navigation }: Props) {
           </ScrollView>
         </Section>
 
-        <Section title="Sounds" surface={theme.surface} titleColor={theme.textMuted}>
+        <Section title={t('settings.sounds')} surface={theme.surface} titleColor={theme.textMuted}>
           <Text style={[styles.hint, { color: theme.textMuted }]}>
-            You can choose from your phone's ringtones. The selection is made from
-            your phone's own sound list.
+            {t('settings.soundHint')}
           </Text>
 
           <Pressable
             style={[styles.row, { borderColor: theme.border }]}
-            onPress={() => selectSound(CALL_CHANNEL, 'Call ringtone')}
+            onPress={() => selectSound(CALL_CHANNEL, t('settings.callRingtone'))}
           >
             <Ionicons name="call-outline" size={20} color={theme.accent} />
-            <Text style={[styles.rowText, { color: theme.text }]}>Call ringtone</Text>
+            <Text style={[styles.rowText, { color: theme.text }]}>{t('settings.callRingtone')}</Text>
             <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
           </Pressable>
 
           <Pressable
             style={[styles.row, { borderColor: theme.border }]}
-            onPress={() => selectSound(MESSAGE_CHANNEL, 'Message notification sound')}
+            onPress={() => selectSound(MESSAGE_CHANNEL, t('settings.messageSound'))}
           >
             <Ionicons name="chatbubble-outline" size={20} color={theme.accent} />
-            <Text style={[styles.rowText, { color: theme.text }]}>Message notification sound</Text>
+            <Text style={[styles.rowText, { color: theme.text }]}>{t('settings.messageSound')}</Text>
             <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
           </Pressable>
         </Section>
 
-        <Section title="Media" surface={theme.surface} titleColor={theme.textMuted}>
+        <Section title={t('settings.media')} surface={theme.surface} titleColor={theme.textMuted}>
           <View style={styles.switchRow}>
             <View style={styles.switchText}>
-              <Text style={[styles.switchLabel, { color: theme.text }]}>Save to gallery</Text>
+              <Text style={[styles.switchLabel, { color: theme.text }]}>{t('settings.saveToGallery')}</Text>
               <Text style={[styles.hint, { color: theme.textMuted }]}>
-                When on, photos and videos you open in full screen are saved to your gallery. You can also save manually by long pressing any message.
+                {t('settings.saveToGalleryHint')}
               </Text>
             </View>
             <Switch
@@ -351,7 +398,7 @@ export default function SettingsScreen({ navigation }: Props) {
 
         <Pressable style={[styles.logout, { backgroundColor: theme.surface }]} onPress={logOut}>
           <Ionicons name="log-out-outline" size={20} color={colors.danger} />
-          <Text style={styles.logoutText}>Sign Out</Text>
+          <Text style={styles.logoutText}>{t('settings.signOut')}</Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -394,6 +441,17 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   hint: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
+  languageRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.xs },
+  languageChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    borderWidth: 1.5,
+  },
+  languageChipText: { fontSize: 14, fontWeight: '600' },
   nicknameRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   input: {
     flex: 1,

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../i18n/LanguageContext';
 import { deleteCallRecord } from '../services/calls';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import type { Call } from '../types';
@@ -13,15 +14,6 @@ import { colors, fonts, radius, spacing } from '../theme';
 import { useAppTheme } from '../hooks/useAppTheme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CallHistory'>;
-
-/** Converts seconds to "3 m 12 s" format. */
-function formatDuration(seconds: number) {
-  if (seconds <= 0) return '—';
-  const minutes = Math.floor(seconds / 60);
-  const remaining = seconds % 60;
-  if (minutes === 0) return `${remaining} s`;
-  return `${minutes} m ${remaining} s`;
-}
 
 function formatDate(at: any) {
   const date = at?.toDate?.();
@@ -37,10 +29,19 @@ function formatDate(at: any) {
 
 export default function CallHistoryScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
+
+  function formatDuration(seconds: number) {
+    if (seconds <= 0) return '—';
+    const minutes = Math.floor(seconds / 60);
+    const remaining = seconds % 60;
+    if (minutes === 0) return t('history.seconds', { count: remaining });
+    return t('history.minutesSeconds', { m: minutes, s: remaining });
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -70,20 +71,20 @@ export default function CallHistoryScreen({ navigation }: Props) {
 
   /** Prompts to delete from history on long press. */
   function deleteRecord(callId: string, peerName: string) {
-    Alert.alert('Delete record', `Delete call record with ${peerName}?`, [
+    Alert.alert(t('history.deleteTitle'), t('history.deleteConfirm', { name: peerName }), [
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await deleteCallRecord(callId);
           } catch (error) {
             console.warn('[history] failed to delete record', error);
-            Alert.alert('Delete Failed', 'Failed to delete record, try again.');
+            Alert.alert(t('common.error'), t('common.error'));
           }
         },
       },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   }
 
@@ -107,7 +108,7 @@ export default function CallHistoryScreen({ navigation }: Props) {
           duration: formatDuration(durationSeconds),
         };
       }),
-    [calls, user]
+    [calls, user, t]
   );
 
   return (
@@ -116,7 +117,7 @@ export default function CallHistoryScreen({ navigation }: Props) {
         <Pressable onPress={() => navigation.goBack()} hitSlop={10}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </Pressable>
-        <Text style={styles.headerTitle}>Call History</Text>
+        <Text style={styles.headerTitle}>{t('history.title')}</Text>
       </View>
 
       {loading ? (
@@ -125,14 +126,14 @@ export default function CallHistoryScreen({ navigation }: Props) {
         </View>
       ) : rows.length === 0 ? (
         <View style={styles.center}>
-          <Text style={[styles.empty, { color: theme.textMuted }]}>No calls yet.</Text>
+          <Text style={[styles.empty, { color: theme.textMuted }]}>{t('history.noCalls')}</Text>
         </View>
       ) : (
         <FlatList
           data={rows}
           ListHeaderComponent={
             <Text style={[styles.hint, { color: theme.textMuted }]}>
-              Press and hold to delete
+              {t('history.holdToDelete')}
             </Text>
           }
           keyExtractor={(item) => item.id}
@@ -169,7 +170,7 @@ export default function CallHistoryScreen({ navigation }: Props) {
                     color={item.isMissed ? colors.danger : colors.textMuted}
                   />
                   <Text style={[styles.rowSubtitle, { color: theme.textMuted }]}>
-                    {item.isOutgoing ? 'Outgoing' : 'Incoming'} · {item.date}
+                    {item.isOutgoing ? t('history.outgoing') : t('history.incoming')} · {item.date}
                   </Text>
                 </View>
               </View>
@@ -181,7 +182,7 @@ export default function CallHistoryScreen({ navigation }: Props) {
                   item.isMissed && styles.durationMissed,
                 ]}
               >
-                {item.isMissed ? 'Missed' : item.duration}
+                {item.isMissed ? t('history.missed') : item.duration}
               </Text>
             </Pressable>
           )}

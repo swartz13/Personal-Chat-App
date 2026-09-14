@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useCallSession, type CallPhase } from '../hooks/useCallSession';
+import { useTranslation } from '../i18n/LanguageContext';
 import type { CallType } from '../types';
 import { colors, radius, spacing } from '../theme';
 
@@ -26,21 +27,6 @@ interface Props {
   peerName: string;
   /** Called when the call ends and the screen is about to close. */
   onClose: () => void;
-}
-
-function getStatusText(phase: CallPhase, isCaller: boolean) {
-  switch (phase) {
-    case 'preparing':
-      return 'Preparing…';
-    case 'ringing':
-      return isCaller ? 'Ringing…' : 'Connecting…';
-    case 'connecting':
-      return 'Connecting…';
-    case 'connected':
-      return null;
-    case 'ended':
-      return 'Call ended';
-  }
 }
 
 /** Round control button. */
@@ -78,8 +64,24 @@ export default function CallScreen({ callId, isCaller, type, peerName, onClose }
   // Prevents the screen from sleeping during the call.
   useKeepAwake();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   /** Is the remote peer shown on the large screen? Changes when the PIP window is tapped. */
   const [isRemoteLarge, setIsRemoteLarge] = useState(true);
+
+  function getStatusText(phase: CallPhase, caller: boolean) {
+    switch (phase) {
+      case 'preparing':
+        return t('call.preparing');
+      case 'ringing':
+        return caller ? t('call.ringing') : t('call.connecting');
+      case 'connecting':
+        return t('call.connecting');
+      case 'connected':
+        return null;
+      case 'ended':
+        return t('call.ended');
+    }
+  }
 
   // PIP window is draggable; starts at top right.
   const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
