@@ -14,7 +14,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../i18n/LanguageContext';
-import { directChatId, subscribeToChats } from '../services/chat';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { directChatId, subscribeToChats, subscribeToChatState } from '../services/chat';
 import Avatar from '../components/Avatar';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import type { Chat, FamilyUser } from '../types';
@@ -57,6 +58,7 @@ export default function ChatListScreen({ navigation }: Props) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [users, setUsers] = useState<FamilyUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clearedTimes, setClearedTimes] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -65,6 +67,37 @@ export default function ChatListScreen({ navigation }: Props) {
       setLoading(false);
     });
   }, [user]);
+
+  // Track chat cleared times so cleared chats do not show previous messages.
+  useEffect(() => {
+    if (!user || chats.length === 0) return;
+
+    // First load cached cleared times from local storage
+    chats.forEach((chat) => {
+      AsyncStorage.getItem(`cleared_${chat.id}_${user.uid}`)
+        .then((val) => {
+          if (val) {
+            const num = parseInt(val, 10);
+            if (!isNaN(num)) {
+              setClearedTimes((prev) => ({ ...prev, [chat.id]: num }));
+            }
+          }
+        })
+        .catch(() => {});
+    });
+
+    // Then listen to live clear state from Firestore
+    const unsubscribes = chats.map((chat) =>
+      subscribeToChatState(chat.id, user.uid, (clearedAt) => {
+        if (clearedAt) {
+          setClearedTimes((prev) => ({ ...prev, [chat.id]: clearedAt }));
+        }
+      })
+    );
+    return () => {
+      unsubscribes.forEach((unsub) => unsub());
+    };
+  }, [chats, user]);
 
   // User list to be able to show contact names and profile pictures.
   useEffect(() => {
@@ -83,15 +116,20 @@ export default function ChatListScreen({ navigation }: Props) {
     const covered = new Set<string>();
 
     for (const chat of chats) {
+      const clearedAt = clearedTimes[chat.id] ?? 0;
+      const lastMsgTime = chat.lastMessage?.at?.toMillis?.() ?? 0;
+      const isCleared = clearedAt > 0 && lastMsgTime <= clearedAt;
+      const effectiveLastMessage = isCleared ? null : chat.lastMessage;
+
       if (chat.type === 'group') {
         result.push({
           key: chat.id,
           chatId: chat.id,
-          title: chat.name || t('chatList.familyGroup'),
-          subtitle: chat.lastMessage
-            ? `${chat.lastMessage.senderName}: ${chat.lastMessage.text}`
+          title: t('chatList.familyGroup'),
+          subtitle: effectiveLastMessage
+            ? `${effectiveLastMessage.senderName}: ${effectiveLastMessage.text}`
             : t('chatList.noMessages'),
-          time: formatTime(chat.lastMessage?.at),
+          time: effectiveLastMessage ? formatTime(effectiveLastMessage.at) : '',
           isGroup: true,
         });
         continue;
@@ -107,8 +145,8 @@ export default function ChatListScreen({ navigation }: Props) {
         chatId: chat.id,
         peerUid: otherUid,
         title: contact?.displayName || t('chatList.familyMember'),
-        subtitle: chat.lastMessage?.text || t('chatList.noMessages'),
-        time: formatTime(chat.lastMessage?.at),
+        subtitle: effectiveLastMessage?.text || t('chatList.noMessages'),
+        time: effectiveLastMessage ? formatTime(effectiveLastMessage.at) : '',
         isGroup: false,
         photo: contact?.photoURL,
       });
@@ -130,7 +168,7 @@ export default function ChatListScreen({ navigation }: Props) {
     }
 
     return result;
-  }, [chats, users, user, t]);
+  }, [chats, users, user, t, clearedTimes]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>

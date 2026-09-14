@@ -315,7 +315,10 @@ export default function ChatScreen({ navigation, route }: Props) {
         {
           text: t('common.delete'),
           style: 'destructive',
-          onPress: () => clearChatForMe(chatId, user.uid),
+          onPress: () => {
+            setClearedAt(Date.now());
+            clearChatForMe(chatId, user.uid);
+          },
         },
         { text: t('common.cancel'), style: 'cancel' },
       ]
@@ -386,7 +389,7 @@ export default function ChatScreen({ navigation, route }: Props) {
         </Pressable>
         <Avatar uri={peerPhoto} size={36} group={isGroup} />
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {title}
+          {isGroup ? t('chatList.familyGroup') : title}
         </Text>
         <View style={styles.headerButtons}>
           <Pressable onPress={() => handleCall('audio')} hitSlop={10}>

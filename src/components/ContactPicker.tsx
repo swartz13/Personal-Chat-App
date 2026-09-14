@@ -55,7 +55,7 @@ export default function ContactPicker({ visible, type, contacts, onSelect, onCan
             >
               <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
                 <Text style={styles.avatarText}>
-                  {contact.displayName.charAt(0).toUpperCase()}
+                  {contact.displayName.charAt(0).toLocaleUpperCase('en-US')}
                 </Text>
               </View>
               <Text style={[styles.name, { color: theme.text }]}>{contact.displayName}</Text>

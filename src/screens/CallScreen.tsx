@@ -171,7 +171,7 @@ export default function CallScreen({ callId, isCaller, type, peerName, onClose }
       ) : (
         <View style={styles.placeholder}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{peerName.charAt(0).toUpperCase()}</Text>
+            <Text style={styles.avatarText}>{peerName.charAt(0).toLocaleUpperCase('en-US')}</Text>
           </View>
           <Text style={styles.peerName}>{peerName}</Text>
           {statusText ? <Text style={styles.status}>{statusText}</Text> : null}

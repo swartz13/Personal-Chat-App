@@ -199,46 +199,6 @@ export default function SettingsScreen({ navigation }: Props) {
           <Text style={[styles.email, { color: theme.textMuted }]}>{user?.email}</Text>
         </View>
 
-        {/* Language Selection */}
-        <Section title={t('settings.language')} surface={theme.surface} titleColor={theme.textMuted}>
-          <Text style={[styles.hint, { color: theme.textMuted }]}>
-            {t('settings.languageHint')}
-          </Text>
-          <View style={styles.languageRow}>
-            {languagesList.map((item) => {
-              const isSelected = language === item.key;
-              return (
-                <Pressable
-                  key={item.key}
-                  onPress={async () => {
-                    await setLanguage(item.key);
-                    if (user) {
-                      updateSettings(user.uid, { ...settings, language: item.key });
-                    }
-                  }}
-                  style={[
-                    styles.languageChip,
-                    {
-                      borderColor: isSelected ? theme.accent : theme.border,
-                      backgroundColor: isSelected ? theme.accent : theme.surface,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.languageChipText,
-                      { color: isSelected ? '#FFFFFF' : theme.text },
-                    ]}
-                  >
-                    {item.label}
-                  </Text>
-                  {isSelected && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
-                </Pressable>
-              );
-            })}
-          </View>
-        </Section>
-
         <Section title={t('settings.nickname')} surface={theme.surface} titleColor={theme.textMuted}>
           <Text style={[styles.hint, { color: theme.textMuted }]}>
             {t('settings.nicknameHint')}
@@ -396,6 +356,46 @@ export default function SettingsScreen({ navigation }: Props) {
           </View>
         </Section>
 
+        {/* Language Selection */}
+        <Section title={t('settings.language')} surface={theme.surface} titleColor={theme.textMuted}>
+          <Text style={[styles.hint, { color: theme.textMuted }]}>
+            {t('settings.languageHint')}
+          </Text>
+          <View style={styles.languageRow}>
+            {languagesList.map((item) => {
+              const isSelected = language === item.key;
+              return (
+                <Pressable
+                  key={item.key}
+                  onPress={async () => {
+                    await setLanguage(item.key);
+                    if (user) {
+                      updateSettings(user.uid, { ...settings, language: item.key });
+                    }
+                  }}
+                  style={[
+                    styles.languageChip,
+                    {
+                      borderColor: isSelected ? theme.accent : theme.border,
+                      backgroundColor: isSelected ? theme.accent : theme.surface,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.languageChipText,
+                      { color: isSelected ? '#FFFFFF' : theme.text },
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                  {isSelected && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                </Pressable>
+              );
+            })}
+          </View>
+        </Section>
+
         <Pressable style={[styles.logout, { backgroundColor: theme.surface }]} onPress={logOut}>
           <Ionicons name="log-out-outline" size={20} color={colors.danger} />
           <Text style={styles.logoutText}>{t('settings.signOut')}</Text>
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   },
   email: { fontSize: 14, color: colors.textMuted },
   section: { gap: spacing.sm },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase' },
+  sectionTitle: { fontSize: 13, fontWeight: '700', color: colors.textMuted },
   sectionBody: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,

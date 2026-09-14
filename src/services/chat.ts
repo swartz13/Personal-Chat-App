@@ -4,6 +4,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   limit,
   onSnapshot,
   orderBy,
@@ -13,6 +14,7 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../config/firebase';
 import { buildPreview, notifyOthers } from './notifications';
 import type { Chat, Message } from '../types';
@@ -65,6 +67,11 @@ export async function ensureDirectChat(me: string, other: string) {
  * Messages are not deleted from the other party; they are just not shown to this user.
  */
 export async function clearChatForMe(chatId: string, uid: string) {
+  try {
+    await AsyncStorage.setItem(`cleared_${chatId}_${uid}`, String(Date.now()));
+  } catch (err) {
+    console.warn('[chat] could not cache clearedAt locally', err);
+  }
   await setDoc(doc(db, 'chats', chatId, 'state', uid), { clearedAt: serverTimestamp() });
 }
 
@@ -82,11 +89,47 @@ export function subscribeToChatState(
 }
 
 /**
- * Un-sends the sent message.
+ * Un-sends the sent message and updates the chat's last message summary.
  * Security rules only allow deletion if the other party HAS NOT READ IT YET.
  */
 export async function unsendMessage(chatId: string, messageId: string) {
   await deleteDoc(doc(db, 'chats', chatId, 'messages', messageId));
+
+  // Update chat summary with the newest remaining message so chat list doesn't show deleted message
+  try {
+    const remainingQuery = query(
+      messagesRef(chatId),
+      orderBy('createdAt', 'desc'),
+      limit(1)
+    );
+    const remainingSnap = await getDocs(remainingQuery);
+    if (!remainingSnap.empty) {
+      const latest = remainingSnap.docs[0].data() as Message;
+      const previewText =
+        latest.type === 'text'
+          ? latest.text
+          : latest.type === 'video'
+            ? 'Video'
+            : latest.type === 'file'
+              ? latest.fileName || 'Document'
+              : 'Photo';
+      await updateDoc(doc(db, 'chats', chatId), {
+        lastMessage: {
+          text: previewText,
+          senderName: latest.senderName,
+          at: latest.createdAt,
+        },
+        updatedAt: latest.createdAt ?? serverTimestamp(),
+      });
+    } else {
+      await updateDoc(doc(db, 'chats', chatId), {
+        lastMessage: null,
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (err) {
+    console.warn('[chat] could not update last message on unsend', err);
+  }
 }
 
 /** The maximum number of messages fetched at a time. */

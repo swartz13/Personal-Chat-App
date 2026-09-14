@@ -29,7 +29,7 @@ export default function IncomingCallOverlay({ call, onAccept, onReject }: Props)
     <View style={[StyleSheet.absoluteFill, styles.container]}>
       <View style={[styles.content, { paddingTop: insets.top + spacing.xl * 2 }]}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{call.callerName.charAt(0).toUpperCase()}</Text>
+          <Text style={styles.avatarText}>{call.callerName.charAt(0).toLocaleUpperCase('en-US')}</Text>
         </View>
         <Text style={styles.name}>{call.callerName}</Text>
         <Text style={styles.subtitle}>
