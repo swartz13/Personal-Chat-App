@@ -183,8 +183,8 @@ export async function listOtherMembers(chatId: string, uid: string) {
 
   const usersSnapshot = await getDocs(collection(db, 'users'));
   return usersSnapshot.docs
-    .map((d) => d.data() as { uid: string; displayName: string })
-    .filter((userDoc) => members.includes(userDoc.uid) && userDoc.uid !== uid);
+    .map((d) => d.data() as { uid: string; displayName: string; disabled?: boolean })
+    .filter((userDoc) => members.includes(userDoc.uid) && userDoc.uid !== uid && !userDoc.disabled);
 }
 
 /** Title text to be used for the incoming call notification. */

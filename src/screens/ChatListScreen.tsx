@@ -139,6 +139,8 @@ export default function ChatListScreen({ navigation }: Props) {
       if (!otherUid) continue;
       covered.add(otherUid);
       const contact = usersMap.get(otherUid);
+      // If user was deleted from the database or disabled, do not show this chat
+      if (!contact || contact.disabled) continue;
 
       result.push({
         key: chat.id,
@@ -154,7 +156,7 @@ export default function ChatListScreen({ navigation }: Props) {
 
     // Users with whom no chat has been started should also appear in the list.
     for (const contact of users) {
-      if (contact.uid === user.uid || covered.has(contact.uid)) continue;
+      if (contact.uid === user.uid || covered.has(contact.uid) || contact.disabled) continue;
       result.push({
         key: `new_${contact.uid}`,
         chatId: directChatId(user.uid, contact.uid),
