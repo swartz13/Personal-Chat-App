@@ -220,7 +220,7 @@ export default function ChatScreen({ navigation, route }: Props) {
       }
 
       try {
-        const members = await listOtherMembers(FAMILY_CHAT_ID, user.uid);
+        const members = await listOtherMembers(chatId, user.uid);
         if (members.length === 0) {
           Alert.alert(
             t('chat.noOneToCall'),

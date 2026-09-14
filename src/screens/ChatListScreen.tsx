@@ -156,18 +156,6 @@ export default function ChatListScreen({ navigation }: Props) {
       });
     }
 
-    // Always ensure the Family Group is present at the top of the list
-    if (!result.some((item) => item.chatId === FAMILY_CHAT_ID)) {
-      result.unshift({
-        key: FAMILY_CHAT_ID,
-        chatId: FAMILY_CHAT_ID,
-        title: t('chatList.familyGroup'),
-        subtitle: t('chatList.noMessages'),
-        time: '',
-        isGroup: true,
-      });
-    }
-
     // Users with whom no chat has been started should also appear in the list.
     for (const contact of users) {
       if (contact.uid === user.uid || covered.has(contact.uid) || contact.disabled) continue;
