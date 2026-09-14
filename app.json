@@ -1,0 +1,78 @@
+{
+  "expo": {
+    "name": "Family",
+    "slug": "family-chat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.familychat"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.example.familychat",
+      "useNextNotificationsApi": true,
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.VIBRATE",
+        "android.permission.WAKE_LOCK",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "familychat",
+    "plugins": [
+      "./plugins/withReleaseSigning",
+      "./plugins/withArm64Only",
+      "expo-image",
+      "expo-video",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permission to access your gallery is required to share photos and videos in the chat.",
+          "cameraPermission": "Camera permission is required to take and send photos in the chat."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#128C7E",
+          "defaultChannel": "messages"
+        }
+      ],
+      "@config-plugins/react-native-webrtc",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Permission is required to save received photos and videos to your gallery.",
+          "savePhotosPermission": "Permission is required to save photos and videos to your gallery.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      "expo-audio",
+      "expo-font",
+      "./plugins/withRingtoneChannel"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
